@@ -1,16 +1,4 @@
-{-
-Let p0 = Problem c, and let ps be the closure of {p0} under subProblems. Let es
-be a set of edges between the Problems of ps such that (p,q) is in es if and
-only if q is in subProblems p. The pair (ps,es) defines a DAG.
-
-The cardinality of T is equal to the number of edges on the longest path that
-starts at p0. This is similar to the Longest Increasing Subsequence problem,
-except that there's one starting node and multiple terminal nodes, and it's not
-immediately obvious how to enumerate the terminal nodes without computing ps,
-which may be massive.
--}
-
-{-# LANGUAGE OverloadedStrings, TupleSections #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main(main) where
 
