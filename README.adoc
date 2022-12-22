@@ -1,0 +1,79 @@
+:source-highlighter: highlight.js
+:highlightjs-languages: haskell
+
+= Trinities
+
+== Problem Statement
+
+Given `n` finite, disjoint sets with cardinalities ``c = [c_1, ..., c_n]``, form the largest possible set `T` of triplets by selecting elements from the sets without replacement.
+A triplet may not contain multiple elements from the same set.
+What's the cardinality of `T`?
+
+
+== Terminology
+
+Phase:: A sequence of operations in which a given triplet is repeatedly removed from the corresponding three sets.
+
+
+== Naive Attempt
+
+The `naivePhases` is an obvious, but suboptimal, attempt at a solution.
+The idea is to:
+
+. identify the biggest three sets `X`, `Y` & `Z` (the choice doesn't matter if there are multiple options);
+. remove `min(|X|, |Y|, |Z|)` triplets from these sets;
+. repeat until there are no triplets left.
+
+This algorithm underestimates some cases though, e.g. if sets `A`, `B`, `C` and `D` have cardinalities 26, 26, 31 and 4, then `naivePhases` only manages to remove 26 triplets, i.e.
+
+[source,haskell]
+----
+countTriplets (naivePhases $ mkProblem [26,26,31,4]) == 26
+----
+
+But you can form 28 triplets as follows:
+
+[options="header"]
+|===
+| Phase No. | `\|A\|` | `\|B\|` | `\|C\|` | `\|D\|` | `\|T\|`
+| 0 |  26 |  26 |  31 |   4 |   0
+| 1 |   2 |   2 |   7 |   4 |  24
+| 2 |   0 |   2 |   5 |   2 |  26
+| 3 |   0 |   0 |   3 |   0 |  28
+|===
+
+
+== Better Attempt
+
+We can achieve better results by only removing one triplet from the biggest three sets.
+The `betterPhases` function does this, and it removes 28 triplets in the `[26,26,31,4]` case.
+
+
+== Functionality
+
+The `main` function loads the example problems from link:data/TrinitySnapshotTest-12_20-12_22.csv[data/TrinitySnapshotTest-12_20-12_22.csv], evaluates them using `naivePhases` and `betterPhases`, and prints out CSV tables that show failures and improvements.
+Failures are cases where the `*Phases` function performs worse than the lower bound specified in the file, and improvements are cases where it performs better.
+
+
+== Results
+
+* `naivePhases` matches the triplet counts in the example problems.
+* `betterPhases` produces no failures and several improvements, shown in link:data/Improvements.csv[data/Improvements.csv].
+  ** In this file, each phase is specified with the notation `n × (i,j,k)`, meaning: remove `n` triplets from sets `i`, `j` and `k`.
+
+
+== Building & Running
+
+Build and run by executing the following in the root directory:
+
+[source,shell]
+----
+cabal run
+----
+
+To call functions directly, load GHCI in the root directory with:
+
+[source,shell]
+----
+cabal repl
+----

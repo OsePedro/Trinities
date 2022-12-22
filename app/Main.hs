@@ -1,20 +1,4 @@
 {-
-Given n finite, disjoint sets with cardinalities c = [c_1, ..., c_n], form the
-largest possible set T of triplets by selecting elements from the sets without
-replacement. A triplet may not contain multiple elements from the same set.
-What's the cardinality of T?
-
-The naivePhases function below underestimates some cases, e.g.
-countTriplets (naivePhases [26,26,31,4]) == 26 . For this case, if the sets are
-A, B, C and D, you can form 28 triplets as follows:
-
-Phase # |A| # |B| # |C| # |D| # |T|
-###################################
-   0 #  26 #  26 #  31 #   4 #   0
-   1 #   2 #   2 #   7 #   4 #  24
-   2 #   0 #   2 #   5 #   2 #  26
-   3 #   0 #   0 #   3 #   0 #  28
-
 Let p0 = Problem c, and let ps be the closure of {p0} under subProblems. Let es
 be a set of edges between the Problems of ps such that (p,q) is in es if and
 only if q is in subProblems p. The pair (ps,es) defines a DAG.
@@ -96,9 +80,12 @@ mkTriplet :: SetSpec -> SetSpec -> SetSpec -> Triplet
 mkTriplet x y z =
   let [i0,i1,i2] = sort [index x, index y, index z] in (i0,i1,i2)
 
+mkProblem :: [Int] -> Problem
+mkProblem cardinalities =
+  Problem $ S.fromList $ zipWith (curry setSpec) cardinalities [0..]
 
 main = do
-  csv <- readFile "TrinitySnapshotTest-12_20-12_22.csv"
+  csv <- readFile "data/TrinitySnapshotTest-12_20-12_22.csv"
   let eval = evaluate $ fromJust $ parseLowerBounds 10 csv
   eval "naivePhases" naivePhases
   eval "betterPhases" betterPhases
@@ -108,11 +95,11 @@ evaluate wLBs name phases = do
   let (wallets,lbs) = unzip wLBs
   let ps = phases . problem <$> lbs
   let select pred = filter (uncurry pred . snd) $ zip wallets $ zip ps lbs
-  let exceeders = select exceedsLowerBound
+  let improvements = select exceedsLowerBound
   let failures = select belowLowerBound
 
-  printHeading $ name ++ " exceeders:"
-  putStrLn $ toCSV exceeders
+  printHeading $ name ++ " improvements:"
+  putStrLn $ toCSV improvements
 
   printHeading $ name ++ " failures:"
   putStrLn $ toCSV failures
