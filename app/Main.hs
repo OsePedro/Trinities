@@ -113,7 +113,7 @@ selectComparisons cmps ord = snd <$> filter ((ord ==) . fst) cmps
 
 comparisons :: [(String,(Phases,LowerBound))]
             -> [(Ordering,(String,(Phases,LowerBound)))]
-comparisons = map $ \wplb -> (uncurry compareToLowerBound (snd wplb), wplb)
+comparisons = map $ \wplb -> (compareToLowerBound (snd wplb), wplb)
 
 printHeading :: Char -> String -> IO ()
 printHeading filler heading0 =
@@ -130,8 +130,8 @@ printHeading filler heading0 =
   post = replicate (lineLength - preLen - hLen) filler
   line = replicate lineLength '='
 
-compareToLowerBound :: Phases -> LowerBound -> Ordering
-compareToLowerBound ps lb = compare (countTriplets ps) (atLeast lb)
+compareToLowerBound :: (Phases,LowerBound) -> Ordering
+compareToLowerBound (ps,lb) = compare (countTriplets ps) (atLeast lb)
 
 parseLowerBounds :: Int -> String -> Maybe [(String,LowerBound)]
 parseLowerBounds expectedLen =
