@@ -100,11 +100,10 @@ evaluate wLBs name phases = do
   printCSV ' ' ("Failures by " ++ name) failures
 
 printCSV :: Char -> String -> [(String,(Phases,LowerBound))] -> IO ()
-printCSV fill heading walletPhasesLBs
-  | null walletPhasesLBs = return ()
-  | otherwise = do
-      printHeading fill heading
-      putStrLn $ toCSV walletPhasesLBs
+printCSV _ _ [] = return ()
+printCSV fill title walletPhasesLBs = do
+  printTitle fill title
+  putStrLn $ toCSV walletPhasesLBs
 
 selectMismatches  :: [(Ordering,(String,(Phases,LowerBound)))]
                   -> ( [(String,(Phases,LowerBound))]
@@ -120,16 +119,16 @@ comparisons :: [(String,(Phases,LowerBound))]
             -> [(Ordering,(String,(Phases,LowerBound)))]
 comparisons = map $ \wplb -> (compareToLowerBound (snd wplb), wplb)
 
-printHeading :: Char -> String -> IO ()
-printHeading filler heading0 =
+printTitle :: Char -> String -> IO ()
+printTitle filler title0 =
       putStrLn ""
   >>  putStrLn line
-  >>  putStr pre >> putStr heading >> putStrLn post
+  >>  putStr pre >> putStr title >> putStrLn post
   >>  putStrLn line
   where
   lineLength = 80
-  heading = ' ':heading0 ++ " "
-  hLen = length heading
+  title = ' ':title0 ++ " "
+  hLen = length title
   preLen = quot (lineLength - hLen) 2
   pre = replicate preLen filler
   post = replicate (lineLength - preLen - hLen) filler
