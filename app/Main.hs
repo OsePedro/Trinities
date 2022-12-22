@@ -92,13 +92,13 @@ main = do
 
 evaluate :: [(String,LowerBound)] -> String -> (Problem -> Phases) -> IO ()
 evaluate wLBs name phases = do
-  let (wallets,lbs) = unzip wLBs
-  let ps = phases . problem <$> lbs
-  let cmps = comparisons $ zip wallets $ zip ps lbs
-  let (failures,improvements) = selectMismatches cmps
-
   printCSV ' ' ("Improvements by " ++ name) improvements
   printCSV ' ' ("Failures by " ++ name) failures
+  where
+  (wallets,lbs) = unzip wLBs
+  ps = phases . problem <$> lbs
+  cmps = comparisons $ zip wallets $ zip ps lbs
+  (failures,improvements) = selectMismatches cmps
 
 printCSV :: Char -> String -> [(String,(Phases,LowerBound))] -> IO ()
 printCSV _ _ [] = return ()
