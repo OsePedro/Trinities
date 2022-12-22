@@ -81,14 +81,14 @@ Build and run by executing the following in the root directory:
 
 [source,shell]
 ----
-cabal run
+stack run
 ----
 
 To call functions directly, load GHCi in the root directory with:
 
 [source,shell]
 ----
-cabal repl
+stack ghci
 ----
 
 To view the `naivePhases` failures on the randomly-generated problems, run
