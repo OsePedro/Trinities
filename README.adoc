@@ -10,12 +10,11 @@ A triplet may not contain multiple elements from the same set.
 What's the cardinality of `T`?
 
 
-== Terminology
-
-Phase:: A sequence of operations in which a given triplet is repeatedly removed from the corresponding three sets.
-
-
 == Naive Attempt
+
+****
+Phase:: A sequence of consecutive removals of triplets from three sets.
+****
 
 The `naivePhases` is an obvious, but suboptimal, attempt at a solution.
 The idea is to:
@@ -51,15 +50,29 @@ The `betterPhases` function does this, and it removes 28 triplets in the `[26,26
 
 == Functionality
 
-The `main` function loads the example problems from link:data/TrinitySnapshotTest-12_20-12_22.csv[data/TrinitySnapshotTest-12_20-12_22.csv], evaluates them using `naivePhases` and `betterPhases`, and prints out CSV tables that show failures and improvements.
-Failures are cases where the `*Phases` function performs worse than the lower bound specified in the file, and improvements are cases where it performs better.
+The `main` function does the following:
+
+. Tests `betterPhases` on randomly generated problems, and prints all identified failures and improvements.
+. Loads the example problems from link:data/TrinitySnapshotTest-12_20-12_22.csv[data/TrinitySnapshotTest-12_20-12_22.csv], evaluates them using `naivePhases` and `betterPhases`, and prints all identified failures and improvements.
+
+****
+Failure:: a case where a `*Phases` function performs worse than a known lower bound (e.g. a lower bound specified in the file).
+Improvement:: a case where it performs better.
+****
+
+Failures and improvements are printed as a CSV table, in which each phase is specified with the notation `n × (i,j,k)`, meaning: remove `n` triplets from sets `i`, `j` and `k`.
+If a `*Phases` function produces no failures on a given set of problems, nothing is printed.
+The same goes for improvements.
 
 
 == Results
 
-* `naivePhases` matches the triplet counts in the example problems.
-* `betterPhases` produces no failures and several improvements, shown in link:data/Improvements.csv[data/Improvements.csv].
-  ** In this file, each phase is specified with the notation `n × (i,j,k)`, meaning: remove `n` triplets from sets `i`, `j` and `k`.
+* `naivePhases`:
+  .. Matches the example-problem triplet counts.
+  .. Fails hundreds of the randomly generated problems (see <<Building & Running>>).
+* `betterPhases`:
+  .. Produces no failures and several improvements on the example problems, shown in link:data/Improvements.csv[data/Improvements.csv].
+  .. Matches the triplet counts on the randomly generated problems.
 
 
 == Building & Running
@@ -71,9 +84,17 @@ Build and run by executing the following in the root directory:
 cabal run
 ----
 
-To call functions directly, load GHCI in the root directory with:
+To call functions directly, load GHCi in the root directory with:
 
 [source,shell]
 ----
 cabal repl
 ----
+
+To view the `naivePhases` failures on the randomly-generated problems, run
+[source,haskell]
+----
+testPhases "naivePhases" naivePhases
+----
+
+in GHCi.

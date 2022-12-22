@@ -10,16 +10,20 @@ immediately obvious how to enumerate the terminal nodes without computing ps,
 which may be massive.
 -}
 
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings, TupleSections #-}
 
 module Main(main) where
 
+import Control.Monad.State.Strict
+import Data.Array
 import Data.Char
 import Data.List
 import qualified Data.Map.Strict as M
 import Data.Maybe
+import Data.Monoid
 import Data.Ord
 import qualified Data.Set as S
+import System.Random
 import Text.Printf
 
 
@@ -33,7 +37,8 @@ data LowerBound = LowerBound {problem :: Problem, atLeast :: Int} deriving(Show)
 
 newtype Problem = Problem {setSpecs :: S.Set SetSpec} deriving(Eq,Ord,Show)
 
-data SetSpec = SetSpec {cardinality :: Int, index :: Int} deriving(Eq,Ord,Show)
+data SetSpec =
+  SetSpec {cardinality :: Int, setIndex :: Int} deriving(Eq,Ord,Show)
 
 
 countTriplets :: Phases -> Int
@@ -78,13 +83,14 @@ naivePhases =
 
 mkTriplet :: SetSpec -> SetSpec -> SetSpec -> Triplet
 mkTriplet x y z =
-  let [i0,i1,i2] = sort [index x, index y, index z] in (i0,i1,i2)
+  let [i0,i1,i2] = sort [setIndex x, setIndex y, setIndex z] in (i0,i1,i2)
 
 mkProblem :: [Int] -> Problem
 mkProblem cardinalities =
   Problem $ S.fromList $ zipWith (curry setSpec) cardinalities [0..]
 
 main = do
+  testPhases "betterPhases" betterPhases
   csv <- readFile "data/TrinitySnapshotTest-12_20-12_22.csv"
   let eval = evaluate $ fromJust $ parseLowerBounds 10 csv
   eval "naivePhases" naivePhases
@@ -94,26 +100,50 @@ evaluate :: [(String,LowerBound)] -> String -> (Problem -> Phases) -> IO ()
 evaluate wLBs name phases = do
   let (wallets,lbs) = unzip wLBs
   let ps = phases . problem <$> lbs
-  let select pred = filter (uncurry pred . snd) $ zip wallets $ zip ps lbs
-  let improvements = select exceedsLowerBound
-  let failures = select belowLowerBound
+  let cmps = comparisons $ zip wallets $ zip ps lbs
+  let (failures,improvements) = selectMismatches cmps
 
-  printHeading $ name ++ " improvements:"
-  putStrLn $ toCSV improvements
+  printCSV ' ' ("Improvements by " ++ name) improvements
+  printCSV ' ' ("Failures by " ++ name) failures
 
-  printHeading $ name ++ " failures:"
-  putStrLn $ toCSV failures
+printCSV :: Char -> String -> [(String,(Phases,LowerBound))] -> IO ()
+printCSV fill heading walletPhasesLBs
+  | null walletPhasesLBs = return ()
+  | otherwise = do
+      printHeading fill heading
+      putStrLn $ toCSV walletPhasesLBs
 
-printHeading :: String -> IO ()
-printHeading heading =
-  let line = replicate 80 '='
-  in  putStrLn "" >> putStrLn line >> putStrLn heading >> putStrLn line
+selectMismatches  :: [(Ordering,(String,(Phases,LowerBound)))]
+                  -> ( [(String,(Phases,LowerBound))]
+                     , [(String,(Phases,LowerBound))])
+selectMismatches cmps = (selectComparisons cmps LT, selectComparisons cmps GT)
 
-exceedsLowerBound :: Phases -> LowerBound -> Bool
-exceedsLowerBound ps lb = countTriplets ps > atLeast lb
+selectComparisons :: [(Ordering,(String,(Phases,LowerBound)))]
+                  -> Ordering
+                  -> [(String,(Phases,LowerBound))]
+selectComparisons cmps ord = snd <$> filter ((ord ==) . fst) cmps
 
-belowLowerBound :: Phases -> LowerBound -> Bool
-belowLowerBound ps lb = countTriplets ps < atLeast lb
+comparisons :: [(String,(Phases,LowerBound))]
+            -> [(Ordering,(String,(Phases,LowerBound)))]
+comparisons = map $ \wplb -> (uncurry compareToLowerBound (snd wplb), wplb)
+
+printHeading :: Char -> String -> IO ()
+printHeading filler heading0 =
+      putStrLn ""
+  >>  putStrLn line
+  >>  putStr pre >> putStr heading >> putStrLn post
+  >>  putStrLn line
+  where
+  lineLength = 80
+  heading = ' ':heading0 ++ " "
+  hLen = length heading
+  preLen = quot (lineLength - hLen) 2
+  pre = replicate preLen filler
+  post = replicate (lineLength - preLen - hLen) filler
+  line = replicate lineLength '='
+
+compareToLowerBound :: Phases -> LowerBound -> Ordering
+compareToLowerBound ps lb = compare (countTriplets ps) (atLeast lb)
 
 parseLowerBounds :: Int -> String -> Maybe [(String,LowerBound)]
 parseLowerBounds expectedLen =
@@ -131,7 +161,7 @@ toLowerBound expectedLen ns
   (mLB:mSetSpecs) = reverse $ zipWith (\mN i -> (,i) <$> mN) ns [0..]
 
 setSpec :: (Int,Int) -> SetSpec
-setSpec (card,i) = SetSpec {cardinality=card, index=i}
+setSpec (card,i) = SetSpec {cardinality=card, setIndex=i}
 
 parseCSV :: String -> [(String,[Maybe Int])]
 parseCSV = filter (not . null) . map parseRow . tail . lines
@@ -156,23 +186,23 @@ toCSV walletPhasesLBs = intercalate "\n" (header : map row walletPhasesLBs)
   where
   header =
     intercalate ","
-    $   "Wallet" : [printf "Set %d" i | i <- setIs]
+    $   "Wallet" : map (printf "Set %d") setIs
     ++  ["Old Trinities","New Trinities"]
-    ++  [printf "Phase %d" i | i <- phaseIs]
+    ++  map (printf "Phase %d") phaseIs
 
   row (wallet, (ps@(Phases pList), lb)) =
     intercalate ","
-    $   wallet : [M.findWithDefault "" i i2CardStr | i <- setIs]
+    $   wallet : [M.findWithDefault "" i iToCardText | i <- setIs]
     ++  map show [atLeast lb, countTriplets ps]
     ++  map phaseStr pList
     ++  replicate (maxNoPhases - length pList) ""
     where
-    i2CardStr =
+    iToCardText =
       M.fromList
-      $   (\sSpec -> (index sSpec, show $ cardinality sSpec))
+      $   (\sSpec -> (setIndex sSpec, show $ cardinality sSpec))
       <$> (S.toList $ setSpecs $ problem lb)
 
-    phaseStr p = "\"" ++ show (count p) ++ " × " ++ show (triplet p) ++ "\""
+    phaseStr p = "\"" <> show (count p) <> " × " <> show (triplet p) <> "\""
 
   setIs = [0..maxNoSets-1]
   phaseIs = [0..maxNoPhases-1]
@@ -180,3 +210,51 @@ toCSV walletPhasesLBs = intercalate "\n" (header : map row walletPhasesLBs)
   maxNoSets = maximum $ 0 : map noSets walletPhasesLBs
   noPhases = length . phases . fst . snd
   noSets = S.size . setSpecs . problem . snd . snd
+
+testPhases :: String -> (Problem -> Phases) -> IO ()
+testPhases name phases = do
+  printCSV '#' ("Test Failures by " ++ name) failures
+  printCSV '#' ("Test Improvements by " ++ name) improvements
+  where
+  maxNoSets = 8
+  maxNoTriplets = 100
+  sLBs = sequence $
+    [ randomLowerBound noSets noTriplets
+    | noSets <- [4..maxNoSets]
+    , let minNoTriplets = ceiling (fromIntegral noSets / 3) * 2
+    , noTriplets <- [minNoTriplets .. maxNoTriplets]
+    ]
+  lbs = evalState sLBs $ mkStdGen 0
+  ps = phases . problem <$> lbs
+  walletPhasesLBs = zip (show <$> [0..]) $ zip ps lbs
+  (failures,improvements) = selectMismatches $ comparisons walletPhasesLBs
+
+-- Pre: noSets >= 3.
+randomLowerBound :: Int -> Int -> State StdGen LowerBound
+randomLowerBound noSets noTriplets = do
+  triplets <- sequence $ replicate noTriplets $ randomTriplet noSets
+  let cardinalities = accumArray (+) 0 (0,noSets-1) $ concatMap incs triplets
+  let prob = mkProblem $ elems cardinalities
+
+  if allNonZero triplets
+  then return $ LowerBound prob noTriplets
+  else randomLowerBound noSets noTriplets
+
+  where
+  tripList (i,j,k) = [i,j,k]
+  incs = (`zip` repeat 1) . tripList
+  allNonZero triplets =
+    noSets == S.size (S.fromList $ concatMap tripList triplets)
+
+-- Pre: noSets >= 3.
+randomTriplet :: Int -> State StdGen Triplet
+randomTriplet noSets = do
+  (i,is1) <- removeRndIndex [0..noSets-1]
+  (j,is2) <- removeRndIndex is1
+  (k,_)   <- removeRndIndex is2
+  return (i,j,k)
+  where
+  removeRndIndex is = do
+    s <- state $ uniformR (0,length is-1)
+    let (pre,i:post) = splitAt s is
+    return (i,pre++post)

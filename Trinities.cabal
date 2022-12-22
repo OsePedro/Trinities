@@ -7,8 +7,11 @@ author:             Ose Pedro
 build-type:         Simple
 
 executable Trinities
-    main-is:          Main.hs
-    build-depends:      base >= 4.9 && < 4.15
-                      , containers >= 0.6 && < 0.7
-    hs-source-dirs:   app
-    default-language: Haskell2010
+  main-is:          Main.hs
+  build-depends:    array >= 0.5 && < 0.6,
+                    base >= 4.9 && < 4.15,
+                    containers >= 0.6 && < 0.7,
+                    mtl >= 2.2 && < 2.3,
+                    random >= 1.2 && < 1.3
+  hs-source-dirs:   app
+  default-language: Haskell2010
