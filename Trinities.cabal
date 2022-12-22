@@ -1,0 +1,14 @@
+cabal-version:      3.0
+name:               Trinities
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Ose Pedro
+build-type:         Simple
+
+executable Trinities
+    main-is:          Main.hs
+    build-depends:      base >= 4.9 && < 4.15
+                      , containers >= 0.6 && < 0.7
+    hs-source-dirs:   app
+    default-language: Haskell2010
