@@ -49,7 +49,8 @@ betterPhases =
     (z:y:x:rest) = S.toDescList sSpecs0
     phase = Phase {triplet = mkTriplet x y z, count = 1}
     sSpecs1 =
-      S.fromList (catMaybes [dec z, dec y, dec x]) `S.union` S.fromDescList rest
+      S.fromDescList (catMaybes [dec z, dec y, dec x]) `S.union`
+      S.fromDescList rest
 
     dec ss  | cardinality ss == 1 = Nothing
             | otherwise = Just ss {cardinality = cardinality ss - 1}
