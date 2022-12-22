@@ -33,21 +33,26 @@ countTriplets :: Phases -> Int
 countTriplets = sum . map count . phases
 
 betterPhases :: Problem -> Phases
-betterPhases = compress . Phases . unfoldr removeTripletFromBiggestSets
-
--- Pre: all cardinalities are > 0.
-removeTripletFromBiggestSets :: Problem -> Maybe (Phase,Problem)
-removeTripletFromBiggestSets (Problem sSpecs0)
-  | S.size sSpecs0 < 3 = Nothing
-  | otherwise = Just (phase, Problem sSpecs1)
+betterPhases =
+  compress . Phases . unfoldr removeTripletFromBiggestSets . assertNonZero
   where
-  (z:y:x:rest) = S.toDescList sSpecs0
-  phase = Phase {triplet = mkTriplet x y z, count = 1}
-  sSpecs1 =
-    S.fromList (catMaybes [dec z, dec y, dec x]) `S.union` S.fromDescList rest
+  assertNonZero prob
+    | (minimum $ S.map cardinality $ setSpecs prob) > 0 = prob
+    | otherwise = error "betterPhases requires all cardinalities to be > 0."
 
-  dec ss  | cardinality ss == 1 = Nothing
-          | otherwise = Just ss {cardinality = cardinality ss - 1}
+  -- Pre: all cardinalities are > 0.
+  removeTripletFromBiggestSets :: Problem -> Maybe (Phase,Problem)
+  removeTripletFromBiggestSets (Problem sSpecs0)
+    | S.size sSpecs0 < 3 = Nothing
+    | otherwise = Just (phase, Problem sSpecs1)
+    where
+    (z:y:x:rest) = S.toDescList sSpecs0
+    phase = Phase {triplet = mkTriplet x y z, count = 1}
+    sSpecs1 =
+      S.fromList (catMaybes [dec z, dec y, dec x]) `S.union` S.fromDescList rest
+
+    dec ss  | cardinality ss == 1 = Nothing
+            | otherwise = Just ss {cardinality = cardinality ss - 1}
 
 compress :: Phases -> Phases
 compress ps@(Phases []) = ps
