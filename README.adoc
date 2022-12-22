@@ -16,7 +16,7 @@ What's the cardinality of `T`?
 Phase:: A sequence of consecutive removals of triplets from three sets.
 ****
 
-The `naivePhases` function is an obvious, but incorrect, attempt at a solution.
+The `naivePhases` function in link:app/Main.hs[app/Main.hs] is an obvious, but incorrect, attempt at a solution.
 The idea is to:
 
 . identify the biggest three sets `X`, `Y` & `Z` (the choice doesn't matter if there are multiple options);
