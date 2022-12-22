@@ -134,7 +134,7 @@ setSpec :: (Int,Int) -> SetSpec
 setSpec (card,i) = SetSpec {cardinality=card, index=i}
 
 parseCSV :: String -> [(String,[Maybe Int])]
-parseCSV = filter (not . null) . map parseRow . lines
+parseCSV = filter (not . null) . map parseRow . tail . lines
 
 parseRow :: String -> (String,[Maybe Int])
 parseRow s =
